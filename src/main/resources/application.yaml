@@ -68,6 +68,7 @@ gateway:
     - /api/users/register
   internal-paths:
     - /api/users/internal
+    - /api/auth/save-credentials
 
 app:
   jwt:
@@ -76,7 +77,3 @@ app:
   internal:
     api-keys:
       gateway: ${GATEWAY_API_KEY}
-  urls:
-    user-service: ${USER_SERVICE_URL:http://localhost:8081}
-    auth-service: ${AUTH_SERVICE_URL:http://localhost:8082}
-    order-service: ${ORDER_SERVICE_URL:http://localhost:8083}

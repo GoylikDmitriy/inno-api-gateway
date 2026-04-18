@@ -43,7 +43,3 @@ app:
   internal:
     api-keys:
       gateway: ${GATEWAY_API_KEY}
-  urls:
-    user-service: ${USER_SERVICE_URL}
-    auth-service: ${AUTH_SERVICE_URL}
-    order-service: ${ORDER_SERVICE_URL}
