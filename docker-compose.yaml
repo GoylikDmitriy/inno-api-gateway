@@ -1,0 +1,161 @@
+version: '3.8'
+
+services:
+  user-service-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_DB=${USER_POSTGRES_DB}
+      - POSTGRES_USER=${USER_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${USER_POSTGRES_PASSWORD}
+      - PGDATA=/data/postgres-user-service
+    volumes:
+      - ./postgres-user-service-data:/data/postgres-user-service
+    networks:
+      - microservices-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${USER_POSTGRES_USER}", "-d", "${USER_POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      - POSTGRES_DB=${AUTH_POSTGRES_DB}
+      - POSTGRES_USER=${AUTH_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${AUTH_POSTGRES_PASSWORD}
+      - PGDATA=/data/postgres-auth-service
+    volumes:
+      - ./postgres-auth-service-data:/data/postgres-auth-service
+    networks:
+      - microservices-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${AUTH_POSTGRES_USER}", "-d", "${AUTH_POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-service-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - '5434:5432'
+    environment:
+      - POSTGRES_DB=${ORDER_POSTGRES_DB}
+      - POSTGRES_USER=${ORDER_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${ORDER_POSTGRES_PASSWORD}
+      - PGDATA=/data/postgres-order-service
+    volumes:
+      - ./postgres-order-service-data:/data/postgres-order-service
+    networks:
+      - microservices-network
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "${ORDER_POSTGRES_USER}", "-d", "${ORDER_POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - ./redis-data:/data
+    networks:
+      - microservices-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build: ./auth-service
+    restart: always
+    ports:
+      - '8082:8082'
+    depends_on:
+      auth-service-postgres:
+        condition: service_healthy
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=${AUTH_SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${AUTH_SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${AUTH_SPRING_DATASOURCE_PASSWORD}
+      - SPRING_JPA_DATABASE_PLATFORM=${AUTH_SPRING_JPA_DATABASE_PLATFORM}
+      - SPRING_LIQUIBASE_CHANGELOG=${AUTH_SPRING_LIQUIBASE_CHANGELOG}
+      - APP_JWT_SECRET=${JWT_SECRET}
+      - APP_JWT_ACCESS_TOKEN_EXPIRATION_MS=${JWT_ACCESS_TOKEN_EXPIRATION_MS}
+      - APP_JWT_REFRESH_TOKEN_EXPIRATION_MS=${JWT_REFRESH_TOKEN_EXPIRATION_MS}
+      - USER_SERVICE_API_KEY=${USER_SERVICE_API_KEY}
+    networks:
+      - microservices-network
+
+  user-service:
+    build: ./user-service
+    restart: always
+    ports:
+      - '8081:8081'
+    depends_on:
+      user-service-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=${USER_SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${USER_SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${USER_SPRING_DATASOURCE_PASSWORD}
+      - SPRING_JPA_DATABASE_PLATFORM=${USER_SPRING_JPA_DATABASE_PLATFORM}
+      - SPRING_LIQUIBASE_CHANGELOG=${USER_SPRING_LIQUIBASE_CHANGELOG}
+      - APP_PAYMENT_CARD_ENCRYPTION_BASE64_KEY=${PAYMENT_CARD_ENCRYPTION_BASE64_KEY}
+      - USER_SERVICE_API_KEY=${USER_SERVICE_API_KEY}
+      - ORDER_SERVICE_API_KEY=${ORDER_SERVICE_API_KEY}
+      - GATEWAY_API_KEY=${GATEWAY_API_KEY}
+    networks:
+      - microservices-network
+
+  order-service:
+    build: ./order-service
+    restart: always
+    ports:
+      - '8083:8083'
+    depends_on:
+      order-service-postgres:
+        condition: service_healthy
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=${ORDER_SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${ORDER_SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${ORDER_SPRING_DATASOURCE_PASSWORD}
+      - SPRING_JPA_DATABASE_PLATFORM=${ORDER_SPRING_JPA_DATABASE_PLATFORM}
+      - SPRING_LIQUIBASE_CHANGELOG=${ORDER_SPRING_LIQUIBASE_CHANGELOG}
+      - CLIENT_GATEWAY_URL=${GATEWAY_URL}
+      - ORDER_SERVICE_API_KEY=${ORDER_SERVICE_API_KEY}
+    networks:
+      - microservices-network
+
+  gateway:
+    build: ./gateway
+    restart: always
+    ports:
+      - '8080:8080'
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - GATEWAY_API_KEY=${GATEWAY_API_KEY}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL}
+      - USER_SERVICE_URL=${USER_SERVICE_URL}
+      - ORDER_SERVICE_URL=${ORDER_SERVICE_URL}
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge
