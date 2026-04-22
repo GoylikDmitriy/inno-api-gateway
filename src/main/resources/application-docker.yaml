@@ -36,6 +36,16 @@ spring:
                     name: orderService
                     fallbackUri: forward:/fallback/order
 
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/payments/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: paymentService
+                    fallbackUri: forward:/fallback/payment
+
 app:
   jwt:
     secret: ${JWT_SECRET}
