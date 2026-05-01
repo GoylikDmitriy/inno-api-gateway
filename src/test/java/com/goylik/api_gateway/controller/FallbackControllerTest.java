@@ -16,7 +16,8 @@ class FallbackControllerTest {
     @CsvSource({
             "/fallback/user, User service is temporarily unavailable. Please try again later.",
             "/fallback/auth, Auth service is temporarily unavailable. Please try again later.",
-            "/fallback/order, Order service is temporarily unavailable. Please try again later."
+            "/fallback/order, Order service is temporarily unavailable. Please try again later.",
+            "/fallback/payment, Payment service is temporarily unavailable. Please try again later."
     })
     void fallback_ShouldReturn503WithCorrectMessage(String path, String expectedMessage) {
         webTestClient.get().uri(path)

@@ -42,4 +42,15 @@ public class FallbackController {
 
         return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse));
     }
+
+    @RequestMapping("/payment")
+    public Mono<ResponseEntity<ErrorResponse>> paymentFallback() {
+        ErrorResponse errorResponse = ErrorResponse.of(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                "Payment service is temporarily unavailable. Please try again later."
+        );
+
+        return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse));
+    }
 }

@@ -36,6 +36,16 @@ spring:
                     name: orderService
                     fallbackUri: forward:/fallback/order
 
+            - id: payment-service
+              uri: ${PAYMENT_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/payments/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: paymentService
+                    fallbackUri: forward:/fallback/payment
+
 resilience4j:
   circuitbreaker:
     configs:
@@ -52,7 +62,6 @@ resilience4j:
         slowCallDurationThreshold: 5s
         recordExceptions:
           - java.io.IOException
-          - java.util.concurrent.TimeoutException
           - org.springframework.web.client.ResourceAccessException
     instances:
       userService:
@@ -61,6 +70,42 @@ resilience4j:
         baseConfig: default
       orderService:
         baseConfig: default
+      paymentService:
+        base-config: default
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+        cancelRunningFuture: true
+    instances:
+      userService:
+        baseConfig: default
+      authService:
+        baseConfig: default
+      orderService:
+        baseConfig: default
+      paymentService:
+        base-config: default
+
+logging:
+  level:
+    .io.github.resilience4j: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      show-components: always
+  info:
+    env:
+      enabled: true
 
 gateway:
   public-paths:
