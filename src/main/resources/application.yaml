@@ -92,6 +92,21 @@ logging:
   level:
     .io.github.resilience4j: DEBUG
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      show-components: always
+  info:
+    env:
+      enabled: true
+
 gateway:
   public-paths:
     - /api/auth/login
